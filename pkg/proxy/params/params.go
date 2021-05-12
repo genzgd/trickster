@@ -53,28 +53,25 @@ func UpdateParams(params url.Values, updates map[string]string) {
 // GetRequestValues returns the Query Parameters for the request
 // regardless of method
 func GetRequestValues(r *http.Request) (url.Values, string, bool) {
-	var v url.Values
-	var s string
-	var isBody bool
 	if !methods.HasBody(r.Method) {
-		v = r.URL.Query()
-		s = r.URL.RawQuery
-	} else if r.Header.Get(headers.NameContentType) == headers.ValueApplicationJSON {
-		v = url.Values{}
+		return r.URL.Query(), r.URL.RawQuery, false
+	}
+	contentType := r.Header.Get(headers.NameContentType)
+	if contentType == headers.ValueApplicationJSON {
 		b, _ := ioutil.ReadAll(r.Body)
 		r.Body.Close()
 		r.Body = ioutil.NopCloser(bytes.NewReader(b))
-		s = string(b)
-		isBody = true
-	} else {
+		return url.Values{}, string(b), true
+	}
+	if contentType == headers.ValueXFormURLEncoded || contentType == headers.ValueMultipartFormData {
 		r.ParseForm()
-		v = r.PostForm
-		s = v.Encode()
-		isBody = true
+		pf := r.PostForm
+		s := pf.Encode()
 		r.ContentLength = int64(len(s))
 		r.Body = ioutil.NopCloser(bytes.NewReader([]byte(s)))
+		return pf, s, true
 	}
-	return v, s, isBody
+	return url.Values{}, "", true
 }
 
 // SetRequestValues Values sets the Query Parameters for the request
@@ -83,7 +80,7 @@ func SetRequestValues(r *http.Request, v url.Values) {
 	s := v.Encode()
 	if !methods.HasBody(r.Method) {
 		r.URL.RawQuery = s
-	} else {
+	} else if len(s) > 0 {
 		// reset the body
 		r.ContentLength = int64(len(s))
 		r.Body = ioutil.NopCloser(bytes.NewReader([]byte(s)))
