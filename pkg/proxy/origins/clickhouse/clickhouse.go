@@ -108,11 +108,6 @@ func (c *Client) ParseTimeRangeQuery(r *http.Request) (*timeseries.TimeRangeQuer
 		bf = res.OriginConfig.BackfillTolerance
 	}
 
-	// Force gzip compression since Brotli is broken on CH 20.3
-	// See https://github.com/ClickHouse/ClickHouse/issues/9969
-	// Clients that don't understand gzip are going to break, but oh well
-	r.Header.Set("Accept-Encoding", "gzip")
-
 	trq := &timeseries.TimeRangeQuery{Extent: timeseries.Extent{}, BackfillTolerance: bf}
 	if err := parseRawQuery(rawQuery, trq); err != nil {
 		return nil, err
