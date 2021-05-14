@@ -38,19 +38,28 @@ func TestFindParts(t *testing.T) {
 }
 
 func TestGoodQueries(t *testing.T) {
-	query := `SELECT (  intDiv(toUInt32(datetime), 300) * 300) * 1000 AS t,` +
-		` count() as cnt FROM test_db.test_table WHERE datetime between 1589904000 AND 1589997600` +
-		` GROUP BY t ORDER BY  t DESC FORMAT JSON`
+	query := `SELECT (intDiv(toUInt32(datetime), 60) * 60) * 1000 as t,
+    pipeline,
+    host,
+    sum(cnt) / 300
+  
+FROM test_db.test_table
+WHERE datetime >= toDateTime(1620913399) and metric = 'processed'
+and dim not like '%test%'
+and dim like '%%'
+and dim like '%_%%'
+GROUP BY t, dim, dim2
+ORDER BY t FORMAT JSON`
 	trq := &timeseries.TimeRangeQuery{}
 	err := parseRawQuery(query, trq)
 	if err != nil {
 		t.Error(err)
 	}
-	if trq.Step != 300*time.Second {
-		t.Errorf("Step of %d did not match 300 seconds", trq.Step)
+	if trq.Step != 60*time.Second {
+		t.Errorf("Step of %d did not match 60 seconds", trq.Step)
 	}
 
-	if trq.Extent.Start != time.Unix(int64(1589904000), 0) {
+	if trq.Extent.Start != time.Unix(int64(1620913399), 0) {
 		t.Errorf("Expected start time of 1589904000, got %d", trq.Extent.Start.Unix())
 	}
 	trq = &timeseries.TimeRangeQuery{}

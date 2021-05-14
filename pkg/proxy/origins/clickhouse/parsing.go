@@ -296,8 +296,11 @@ func findRange(parts []string, column string, alias string) (int, int, []string,
 	return st, et, wc, actColumn, nil
 }
 
+var wsRe = regexp.MustCompile("\\s")
+
 func findParts(query string) []string {
-	bytes := []byte(strings.TrimSpace(query))
+	cleaned := wsRe.ReplaceAllString(query, " ")
+	bytes := []byte(strings.TrimSpace(cleaned))
 	size := len(bytes)
 	buf := make([]byte, 0, size)
 	inQuote := false
